@@ -1308,25 +1308,54 @@ button, input { font: inherit; }
 
       try {
         const n = state.placements.length;
-        const W = Math.max(2500, 1200 + n * 270);
-        const outerPad = Math.max(132, Math.round(W * 0.05));
-        const borderThickness = Math.max(10, Math.round(W * 0.0044));
-        const rowGap = n >= 10 ? 8 : 14;
-        const slotGap = n >= 10 ? 8 : 12;
-        const usableWidth = W - outerPad * 2;
-        const targetBaseWidth = usableWidth * 0.80;
-        const slotSize = Math.max(86, Math.min(224, Math.floor((targetBaseWidth - (n - 1) * slotGap) / Math.max(1, n))));
-        const baseRowWidth = n * slotSize + Math.max(0, n - 1) * slotGap;
-        const sidePad = Math.max(slotSize * 0.94, W * 0.055);
-        const triangleWidth = Math.min(W - outerPad * 2, baseRowWidth + sidePad * 2);
-        const apexClearance = Math.max(slotSize * 1.34, 150);
-        const bottomPad = Math.max(slotSize * 0.46, 84);
-        const triangleHeight = apexClearance + n * slotSize + Math.max(0, n - 1) * rowGap + bottomPad;
-        const topPad = Math.max(126, Math.round(W * 0.048));
-        const H = topPad + triangleHeight + 120;
-        const SCALE = 2;
+        const W = 1080;
+        const H = 1920;
+        const SCALE = 1;
         const centerX = W / 2;
-        const triangleTopY = topPad;
+        const outerPad = 92;
+        const triangleTopY = 150;
+        const triangleWidth = W - outerPad * 2;
+        const triangleHeight = H - triangleTopY - 120;
+        const borderThickness = 8;
+        const rowGap = n >= 10 ? 6 : 10;
+        const slotGap = n >= 10 ? 6 : 10;
+        const bottomInnerPad = 74;
+        const innerInset = borderThickness * 1.15 + 6;
+        const innerTriangleWidth = triangleWidth - innerInset * 2;
+        const innerTriangleHeight = triangleHeight - innerInset * 1.1;
+
+        let slotSize = 0;
+        let apexClearance = 0;
+        const startCandidate = Math.min(160, Math.floor((triangleWidth * 0.74 - (n - 1) * slotGap) / Math.max(1, n)));
+
+        for (let candidate = startCandidate; candidate >= 52; candidate--) {
+          const candidateApex = Math.max(120, Math.round(candidate * 1.02));
+          const totalContentHeight = candidateApex + n * candidate + Math.max(0, n - 1) * rowGap + bottomInnerPad;
+          if (totalContentHeight > innerTriangleHeight) continue;
+
+          let fits = true;
+          for (let tierIndex = 0; tierIndex < n; tierIndex++) {
+            const count = tierIndex + 1;
+            const rowWidth = count * candidate + Math.max(0, count - 1) * slotGap;
+            const rowCenterRel = candidateApex + tierIndex * (candidate + rowGap) + candidate / 2;
+            const widthAtRow = innerTriangleWidth * (rowCenterRel / innerTriangleHeight) - 20;
+            if (rowWidth > widthAtRow) {
+              fits = false;
+              break;
+            }
+          }
+
+          if (fits) {
+            slotSize = candidate;
+            apexClearance = candidateApex;
+            break;
+          }
+        }
+
+        if (!slotSize) {
+          slotSize = 52;
+          apexClearance = 120;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = W * SCALE;
@@ -1370,7 +1399,7 @@ button, input { font: inherit; }
         ctx.fillStyle = outerGrad;
         ctx.fill();
 
-        drawTrianglePath(ctx, centerX, triangleTopY + borderThickness, triangleWidth - borderThickness * 2, triangleHeight - borderThickness * 2);
+        drawTrianglePath(ctx, centerX, triangleTopY + innerInset * 0.45, triangleWidth - innerInset * 2, triangleHeight - innerInset * 1.1);
         const innerGrad = ctx.createLinearGradient(centerX, triangleTopY, centerX, triangleTopY + triangleHeight);
         innerGrad.addColorStop(0, 'rgba(7,18,35,0.975)');
         innerGrad.addColorStop(1, 'rgba(4,9,18,0.995)');
@@ -1387,7 +1416,7 @@ button, input { font: inherit; }
         }));
 
 
-        const startY = triangleTopY + apexClearance;
+        const startY = triangleTopY + innerInset * 0.45 + apexClearance;
         for (let tierIndex = 0; tierIndex < n; tierIndex++) {
           const count = state.placements[tierIndex].length;
           const rowWidth = count * slotSize + Math.max(0, count - 1) * slotGap;
