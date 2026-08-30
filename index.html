@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#090811" />
+  <title>PeakRank — Pyramid Ranking Builder</title>
+  <style>
+    :root {
+      --bg: #090811;
+      --bg-2: #0f0d1a;
+      --panel: rgba(18, 16, 29, 0.86);
+      --panel-2: rgba(22, 20, 35, 0.92);
+      --line: rgba(255, 255, 255, 0.09);
+      --line-2: rgba(255, 255, 255, 0.16);
+      --soft: rgba(255, 255, 255, 0.05);
+      --text: #f7f4ff;
+      --muted: #aca4c0;
+      --accent: #8b5cf6;
+      --accent-2: #c084fc;
+      --accent-3: #6d28d9;
+      --danger: #fb7185;
+      --shadow: 0 24px 80px rgba(0,0,0,.42);
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(ellipse at 50% -16%, rgba(90, 170, 255, .30), transparent 42%),
+        radial-gradient(circle at 12% 24%, rgba(0, 214, 255, .11), transparent 28%),
+        radial-gradient(circle at 85% 16%, rgba(76, 127, 255, .14), transparent 26%),
+        radial-gradient(circle at 80% 72%, rgba(41, 98, 255, .10), transparent 30%),
+        linear-gradient(140deg, #071120 0%, #0a1d36 38%, #07162a 62%, #040a14 100%);
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(139, 208, 255, .10) 1.1px, transparent 1.6px),
+        linear-gradient(125deg, transparent 0 45%, rgba(94, 177, 255, .030) 46%, transparent 47% 100%),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px);
+      background-size: 34px 34px, 150px 150px, 38px 38px, 38px 38px;
+      mask-image: radial-gradient(ellipse at 50% 22%, black 0 54%, transparent 88%);
+    }
+
+        body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 30% 18%, rgba(0, 212, 255, .10), transparent 18%),
+        radial-gradient(circle at 68% 12%, rgba(107, 141, 255, .10), transparent 22%),
+        radial-gradient(circle at 52% 72%, rgba(31, 110, 255, .06), transparent 24%);
+      filter: blur(18px);
+      opacity: .95;
+    }
+
+button, input { font: inherit; }
+    button { color: inherit; }
+    img { user-select: none; -webkit-user-drag: none; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 24px;
+      background: rgba(5, 13, 27, .76);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #9d6dff, #6d28d9);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.16) inset, 0 12px 28px rgba(109,40,217,.34);
+    }
+
+    .brand-mark svg { width: 20px; height: 20px; }
+    .brand-title { font-size: 18px; font-weight: 900; letter-spacing: -.04em; }
+    .brand-sub { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      border-radius: 14px;
+      min-height: 42px;
+      padding: 0 14px;
+      font-weight: 780;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: .18s ease;
+      user-select: none;
+    }
+
+    .btn:hover, .btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--line-2);
+      background: rgba(255,255,255,.08);
+      outline: none;
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      box-shadow: 0 14px 34px rgba(109,40,217,.30);
+    }
+
+    .btn.primary:hover, .btn.primary:focus-visible {
+      box-shadow: 0 18px 38px rgba(109,40,217,.36);
+    }
+
+    .btn.ghost { background: transparent; }
+    .btn.danger:hover, .btn.danger:focus-visible { border-color: rgba(251,113,133,.34); background: rgba(251,113,133,.10); }
+    .btn.icon { width: 42px; padding: 0; }
+    .btn svg { width: 16px; height: 16px; }
+
+    .shell {
+      width: min(1600px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 22px 0 40px;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 94px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(22,20,35,.84), rgba(13,12,22,.84));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .panel-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+    .panel-title { font-size: 14px; font-weight: 860; letter-spacing: -.02em; }
+    .panel-sub { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .panel-body { padding: 16px; }
+
+    .dropzone {
+      border: 1px dashed rgba(139,92,246,.48);
+      background: rgba(139,92,246,.07);
+      min-height: 138px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: rgba(192,132,252,.82);
+      background: rgba(139,92,246,.11);
+      transform: translateY(-1px);
+    }
+
+    .upload-mark {
+      width: 46px; height: 46px; margin: 0 auto 10px;
+      border-radius: 14px;
+      display: grid; place-items: center;
+      background: rgba(139,92,246,.14);
+      border: 1px solid rgba(139,92,246,.22);
+    }
+
+    .dropzone strong { display: block; font-size: 14px; font-weight: 820; letter-spacing: -.02em; }
+    .dropzone span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    #fileInput { display: none; }
+
+    .selected-hint {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(139,92,246,.22);
+      background: rgba(139,92,246,.07);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .selected-hint strong { color: var(--text); }
+
+    .quick-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat-card { border: 1px solid var(--line); background: rgba(255,255,255,.04); border-radius: 16px; padding: 12px; }
+    .stat-label { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .stat-value { font-size: 20px; font-weight: 900; letter-spacing: -.04em; margin-top: 2px; }
+
+    .actions-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .tiny-tip { margin-top: 10px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+    .workspace { min-width: 0; display: grid; gap: 18px; }
+
+    .hero { display: flex; justify-content: space-between; align-items: end; gap: 18px; padding: 2px 4px; }
+    .eyebrow { color: var(--accent-2); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .16em; margin-bottom: 10px; }
+    h1 { margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: .97; letter-spacing: -.06em; }
+    .hero p { margin: 11px 0 0; max-width: 780px; font-size: 14px; line-height: 1.65; color: var(--muted); }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .badge { border: 1px solid var(--line); background: rgba(255,255,255,.04); border-radius: 999px; padding: 10px 12px; font-size: 11px; font-weight: 760; color: var(--muted); white-space: nowrap; }
+
+    .board {
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(48, 121, 255, .16), transparent 40%),
+        linear-gradient(180deg, rgba(7, 18, 36, .96), rgba(5, 11, 22, .98));
+      box-shadow: var(--shadow);
+    }
+
+    .board-top {
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+
+    .board-head { min-width: 0; flex: 1; }
+    .board-head-title { font-size: 20px; font-weight: 900; letter-spacing: -.045em; }
+    .board-note { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .board-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .triangle-area {
+      position: relative;
+      padding: 24px 16px 18px;
+    }
+
+    .triangle-shell {
+      position: relative;
+      width: min(var(--triangle-max-width, 1280px), 100%);
+      margin: 18px auto 0;
+      padding: var(--triangle-pad-top, 150px) var(--triangle-pad-x, 56px) var(--triangle-pad-bottom, 52px);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .triangle-shell::before,
+    .triangle-shell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      border-radius: 0;
+      pointer-events: none;
+    }
+
+    .triangle-shell::before {
+      background: linear-gradient(180deg, rgba(236, 224, 255, .92), rgba(149, 107, 255, .88) 44%, rgba(111, 63, 248, .92));
+      opacity: .96;
+      filter: drop-shadow(0 0 14px rgba(127, 108, 255, .30));
+    }
+
+    .triangle-shell::after {
+      inset: var(--triangle-border-gap, 10px);
+      background:
+        radial-gradient(ellipse at 50% 10%, rgba(36, 106, 224, .17), transparent 38%),
+        linear-gradient(180deg, rgba(7, 18, 35, .975), rgba(5, 10, 20, .99));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    .triangle-core {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 10px;
+      padding-top: 18px;
+      padding-bottom: 4px;
+    }
+
+    .tier-row {
+      display: grid;
+      grid-template-columns: repeat(var(--slots), minmax(0, 1fr));
+      gap: 12px;
+      width: var(--row-width, 100%);
+      margin-inline: auto;
+      transition: .18s ease;
+    }
+
+    .tier-row.dragover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    .tier-row:first-child {
+      filter: drop-shadow(0 0 22px rgba(255, 194, 69, .16));
+    }
+
+    .slot {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      min-width: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255,255,255,.025);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      display: grid;
+      place-items: center;
+      transition: .16s ease;
+      cursor: pointer;
+    }
+
+    .slot.empty::after {
+      content: "+";
+      color: rgba(255,255,255,.12);
+      font-size: 24px;
+      font-weight: 400;
+    }
+
+    .slot.dragover {
+      background: rgba(139,92,246,.10);
+      box-shadow: inset 0 0 0 2px rgba(192,132,252,.48), 0 0 0 4px rgba(139,92,246,.10);
+      transform: scale(1.02);
+    }
+
+    .slot.filled {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .slot.special-top {
+      overflow: visible;
+      box-shadow: none;
+    }
+
+    .slot.special-top::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      pointer-events: none;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(255, 214, 92, .34) 0, rgba(255, 190, 54, .18) 34%, rgba(255, 160, 36, .06) 56%, transparent 74%);
+      filter: blur(14px);
+      z-index: -1;
+    }
+
+    .slot.special-top::after {
+      content: "";
+      position: absolute;
+      inset: -9%;
+      pointer-events: none;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 221, 122, .34);
+      opacity: .85;
+    }
+
+    .slot.special-top img {
+      filter: brightness(1.06) saturate(1.05) contrast(1.02);
+      border-radius: 16px;
+      box-shadow: 0 0 0 1px rgba(255, 230, 155, .16);
+    }
+
+    .slot.filled.selected,
+    .asset.selected {
+      box-shadow: 0 0 0 2px rgba(192,132,252,.52), 0 0 0 5px rgba(139,92,246,.14);
+    }
+
+    .slot img,
+    .asset img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      image-rendering: auto;
+    }
+
+    .slot .slot-x {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      border-radius: 9px;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(6px);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: .15s ease;
+      z-index: 2;
+    }
+
+    .slot:hover .slot-x { opacity: 1; }
+    .board-footer { border-top: 1px solid var(--line); padding: 15px 18px; background: rgba(255,255,255,.015); color: var(--muted); font-size: 12px; text-align: center; }
+
+    .library-panel .panel-body { padding-top: 14px; }
+    .library-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .library-count { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .library-grid::-webkit-scrollbar { width: 8px; }
+    .library-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 999px; }
+    .library-empty { color: var(--muted); font-size: 12px; text-align: center; line-height: 1.6; padding: 18px 8px; }
+
+    .asset {
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #11111a;
+      position: relative;
+      cursor: grab;
+      transition: .16s ease;
+    }
+
+    .asset:hover { transform: translateY(-2px); border-color: rgba(139,92,246,.46); }
+    .asset-tools { position: absolute; top: 6px; right: 6px; z-index: 3; display: flex; gap: 5px; }
+    .asset-tool { width: 24px; height: 24px; border-radius: 9px; border: 0; background: rgba(0,0,0,.62); backdrop-filter: blur(6px); display: grid; place-items: center; cursor: pointer; opacity: 0; transition: .15s ease; }
+    .asset:hover .asset-tool { opacity: 1; }
+
+    .mobile-library-toggle {
+      display: none;
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+      transform: translateX(-50%);
+      z-index: 90;
+      min-width: 188px;
+      box-shadow: 0 20px 44px rgba(0,0,0,.34);
+    }
+
+    .bottom-sheet {
+      display: none;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 89;
+      background: rgba(12,11,20,.97);
+      border-top: 1px solid var(--line);
+      box-shadow: 0 -24px 80px rgba(0,0,0,.42);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+      backdrop-filter: blur(18px);
+      transform: translateY(calc(100% - 54px));
+      transition: transform .22s ease;
+    }
+
+    .bottom-sheet.open { transform: translateY(0); }
+    .sheet-handle { width: 56px; height: 5px; border-radius: 999px; background: rgba(255,255,255,.12); margin: 0 auto 12px; }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .sheet-title { font-size: 14px; font-weight: 850; letter-spacing: -.02em; }
+    .sheet-sub { color: var(--muted); font-size: 12px; }
+    .mobile-tray {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 84px;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .mobile-tray::-webkit-scrollbar { display: none; }
+    .mobile-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .mobile-actions .btn { flex: 1; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+      transform: translate(-50%, 20px);
+      border: 1px solid var(--line-2);
+      background: rgba(20,20,28,.94);
+      backdrop-filter: blur(16px);
+      border-radius: 14px;
+      padding: 11px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      z-index: 120;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1180px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .panel.library-panel { grid-column: span 3; }
+      .library-grid { grid-template-columns: repeat(6, minmax(0,1fr)); max-height: none; }
+    }
+
+    @media (max-width: 860px) {
+      .topbar {
+        padding: 12px 14px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .topbar-actions { width: 100%; justify-content: stretch; }
+      .topbar-actions .btn { flex: 1; }
+      .shell { width: min(100% - 16px, 1600px); padding-top: 14px; gap: 14px; }
+      .sidebar { grid-template-columns: 1fr; gap: 14px; }
+      .panel.library-panel { display: none; }
+      .mobile-library-toggle, .bottom-sheet { display: block; }
+      .hero { display: grid; gap: 14px; }
+      .hero-badges { justify-content: flex-start; }
+      .board-top { display: grid; gap: 12px; }
+      .board-actions { justify-content: stretch; }
+      .board-actions .btn { flex: 1; }
+      .triangle-area { padding: 20px 8px 12px; }
+      .triangle-shell { padding: var(--triangle-pad-top, 42px) 16px var(--triangle-pad-bottom, 18px); }
+      .triangle-shell::after { inset: var(--triangle-border-gap, 8px); }
+      .tier-row { gap: 6px; }
+      .slot .slot-x { width: 22px; height: 22px; opacity: 1; }
+    }
+
+    @media (max-width: 560px) {
+      .brand-sub { display: none; }
+      .brand-title { font-size: 16px; }
+      .topbar-actions .label { display: none; }
+      .topbar-actions .btn { min-height: 40px; }
+      .quick-stats { grid-template-columns: repeat(4, minmax(0,1fr)); }
+      .stat-card { padding: 10px; }
+      .stat-value { font-size: 17px; }
+      .actions-grid { grid-template-columns: 1fr 1fr; }
+      h1 { font-size: 32px; }
+      .hero p { font-size: 13px; }
+      .board-note, .board-footer { font-size: 11px; }
+      .board-actions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .board-actions .btn span { display: none; }
+      .badge { padding: 8px 10px; font-size: 10px; }
+      .slot.empty::after { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19h18L12 4 3 19Z"/><path d="m9 19 3-5 3 5"/></svg>
+      </div>
+      <div>
+        <div class="brand-title">PeakRank</div>
+        <div class="brand-sub">Pyramid ranking builder</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn ghost" id="resetBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        <span class="label">Reset</span>
+      </button>
+      <button class="btn" id="saveBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        <span class="label">Save</span>
+      </button>
+      <button class="btn primary" id="exportBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span class="label">Export PNG</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Upload images</div>
+          <div class="panel-sub">Drop or browse images, then drag or tap them into the pyramid.</div>
+        </div>
+        <div class="panel-body">
+          <label class="dropzone" id="dropzone" for="fileInput">
+            <div>
+              <div class="upload-mark">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v4H4v-4"/></svg>
+              </div>
+              <strong>Add ranking images</strong>
+              <span>JPG, PNG, WEBP • multi-select supported</span>
+            </div>
+          </label>
+          <input id="fileInput" type="file" accept="image/*" multiple />
+          <div class="selected-hint" id="selectedHint">No image selected. <strong>Mobile tip:</strong> tap an image, then tap a pyramid slot.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Quick stats</div>
+          <div class="panel-sub">See how full your pyramid is at a glance.</div>
+        </div>
+        <div class="panel-body">
+          <div class="quick-stats">
+            <div class="stat-card"><div class="stat-label">Ranked</div><div class="stat-value" id="rankedStat">0</div></div>
+            <div class="stat-card"><div class="stat-label">Unranked</div><div class="stat-value" id="unrankedStat">0</div></div>
+            <div class="stat-card"><div class="stat-label">Images</div><div class="stat-value" id="totalStat">0</div></div>
+            <div class="stat-card"><div class="stat-label">Tiers</div><div class="stat-value" id="tierStat">5</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Board controls</div>
+          <div class="panel-sub">Make the pyramid bigger or smaller any time.</div>
+        </div>
+        <div class="panel-body">
+          <div class="actions-grid">
+            <button class="btn" id="addTierBtn" type="button">Add tier</button>
+            <button class="btn" id="removeTierBtn" type="button">Remove tier</button>
+            <button class="btn" id="autoPlaceBtn" type="button">Auto place</button>
+            <button class="btn" id="shuffleBtn" type="button">Shuffle</button>
+            <button class="btn" id="undoBtn" type="button">Undo</button>
+            <button class="btn" id="unrankBtn" type="button">Unrank all</button>
+            <button class="btn danger" id="clearBtn" type="button">Clear ranks</button>
+            <button class="btn" id="clearSelectionBtn" type="button">Clear selection</button>
+          </div>
+          <div class="tiny-tip">The board auto-expands too — if you upload more images than fit, PeakRank adds more tiers automatically.</div>
+        </div>
+      </section>
+
+      <section class="panel library-panel">
+        <div class="panel-head">
+          <div class="panel-title">Image library</div>
+          <div class="panel-sub">Unranked images stay here until you place them in the pyramid.</div>
+        </div>
+        <div class="panel-body">
+          <div class="library-toolbar">
+            <div class="library-count"><span id="libraryCount">0</span> unranked item(s)</div>
+          </div>
+          <div id="libraryWrap"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">Image-only ranking</div>
+          <h1>Back to a true pyramid.<br />Only the images matter.</h1>
+          <p>This version keeps the ranking visual simple: just the images placed into a pyramid, no rank labels on the board, no image captions on the board, and one large triangle border wrapping the whole ranking.</p>
+        </div>
+        <div class="hero-badges">
+          <div class="badge">Image-only ranks</div>
+          <div class="badge">Single triangle border</div>
+          <div class="badge">Mobile tap placement</div>
+          <div class="badge">Clear PNG export</div>
+        </div>
+      </div>
+
+      <section class="board" id="board">
+        <div class="board-top">
+          <div class="board-head">
+            <div class="board-head-title">Image-only pyramid</div>
+            <div class="board-note">Best images at the top, broader group at the bottom.</div>
+          </div>
+          <div class="board-actions">
+            <button class="btn" id="mobileLibraryBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18"/><path d="M3 12h18"/><path d="M3 17h18"/></svg>
+              <span>Library</span>
+            </button>
+            <button class="btn" id="boardUndoBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1"/></svg>
+              <span>Undo</span>
+            </button>
+            <button class="btn" id="boardUnrankBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+              <span>Unrank all</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="triangle-area">
+          <div class="triangle-shell" id="triangleShell">
+            <div class="triangle-core" id="pyramid"></div>
+          </div>
+        </div>
+        <div class="board-footer">Tip: drag on desktop, or tap an image then tap a slot on mobile to place or swap it.</div>
+      </section>
+    </section>
+  </div>
+
+  <button class="btn primary mobile-library-toggle" id="mobileLibraryToggle" type="button">Open image library</button>
+
+  <section class="bottom-sheet" id="mobileSheet" aria-label="Mobile image library">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">Image library</div>
+        <div class="sheet-sub"><span id="mobileLibraryCount">0</span> unranked item(s)</div>
+      </div>
+      <button class="btn icon" id="closeSheetBtn" type="button" aria-label="Close library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="mobile-tray" id="mobileTray"></div>
+    <div class="mobile-actions">
+      <button class="btn" id="sheetUploadBtn" type="button">Add images</button>
+      <button class="btn" id="sheetClearSelectionBtn" type="button">Clear selection</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast">Saved.</div>
+
+  <script>
+    const STORAGE_KEY = 'peakrank-pyramid-v4';
+    const LEGACY_KEYS = ['peakrank-hierarchy-v1', 'peakrank-v3', 'peakrank-v2', 'peakrank-v1'];
+
+    const state = {
+      items: [],
+      placements: makePlacements(5)
+    };
+
+    const history = [];
+    let dragged = null;
+    let selectedId = null;
+
+    const $ = (s) => document.querySelector(s);
+    const pyramid = $('#pyramid');
+    const triangleShell = $('#triangleShell');
+    const libraryWrap = $('#libraryWrap');
+    const mobileTray = $('#mobileTray');
+    const fileInput = $('#fileInput');
+    const dropzone = $('#dropzone');
+    const toast = $('#toast');
+    const selectedHint = $('#selectedHint');
+    const mobileSheet = $('#mobileSheet');
+
+    function uid() {
+      return 'i_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    }
+
+    function makePlacements(count) {
+      return Array.from({ length: count }, (_, i) => Array(i + 1).fill(null));
+    }
+
+    function normalizePlacements(p) {
+      const tiers = Array.isArray(p) && p.length ? p.length : 5;
+      const placements = makePlacements(tiers);
+      for (let i = 0; i < placements.length; i++) {
+        for (let j = 0; j < placements[i].length; j++) {
+          placements[i][j] = p?.[i]?.[j] ?? null;
+        }
+      }
+      return placements;
+    }
+
+    function positionsToPlacements(positions) {
+      const flat = Array.isArray(positions) ? positions.filter(v => v !== undefined) : [];
+      let tiers = 5;
+      while (((tiers * (tiers + 1)) / 2) < flat.length) tiers += 1;
+      const placements = makePlacements(tiers);
+      let k = 0;
+      for (let i = 0; i < placements.length; i++) {
+        for (let j = 0; j < placements[i].length; j++) {
+          placements[i][j] = flat[k++] ?? null;
+        }
+      }
+      return placements;
+    }
+
+    function totalCapacity(tierCount = state.placements.length) {
+      return (tierCount * (tierCount + 1)) / 2;
+    }
+
+    function snapshot() {
+      return JSON.stringify({ items: state.items, placements: state.placements });
+    }
+
+    function pushHistory() {
+      history.push(snapshot());
+      if (history.length > 60) history.shift();
+    }
+
+    function persistQuiet() {
+      try {
+        localStorage.setItem(STORAGE_KEY, snapshot());
+      } catch (e) {
+        console.warn('Could not save locally', e);
+      }
+    }
+
+    function restore(data) {
+      try {
+        const s = typeof data === 'string' ? JSON.parse(data) : data;
+        state.items = Array.isArray(s.items) ? s.items : [];
+        if (Array.isArray(s.placements)) state.placements = normalizePlacements(s.placements);
+        else if (Array.isArray(s.positions)) state.placements = positionsToPlacements(s.positions);
+        else state.placements = makePlacements(5);
+        selectedId = null;
+        render();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function getItem(id) {
+      return state.items.find(item => item.id === id);
+    }
+
+    function getPlacedIds() {
+      return new Set(state.placements.flat().filter(Boolean));
+    }
+
+    function getUnrankedItems() {
+      const placed = getPlacedIds();
+      return state.items.filter(item => !placed.has(item.id));
+    }
+
+    function findPlacement(id) {
+      for (let tier = 0; tier < state.placements.length; tier++) {
+        const slot = state.placements[tier].indexOf(id);
+        if (slot !== -1) return { tier, slot };
+      }
+      return null;
+    }
+
+    function removeFromPlacement(id) {
+      const p = findPlacement(id);
+      if (p) state.placements[p.tier][p.slot] = null;
+    }
+
+    function ensureCapacityForItems(totalItems) {
+      let tierCount = state.placements.length;
+      while (totalCapacity(tierCount) < totalItems) tierCount += 1;
+      if (tierCount !== state.placements.length) {
+        const old = state.placements.map(row => row.slice());
+        state.placements = makePlacements(tierCount);
+        for (let i = 0; i < old.length; i++) {
+          for (let j = 0; j < old[i].length; j++) {
+            state.placements[i][j] = old[i][j];
+          }
+        }
+      }
+    }
+
+    function addTier(silent = false) {
+      pushHistory();
+      state.placements.push(Array(state.placements.length + 1).fill(null));
+      render();
+      persistQuiet();
+      if (!silent) showToast('Tier added');
+    }
+
+    function removeTier() {
+      if (state.placements.length <= 2) return showToast('Keep at least 2 tiers');
+      const last = state.placements[state.placements.length - 1];
+      if (last.some(Boolean) && !confirm('Remove the last tier and return its images to the library?')) return;
+      pushHistory();
+      state.placements.pop();
+      render();
+      persistQuiet();
+      showToast('Last tier removed');
+    }
+
+    function render() {
+      renderPyramid();
+      renderLibrary();
+      updateStats();
+      updateSelectedHint();
+    }
+
+    function renderPyramid() {
+      pyramid.innerHTML = '';
+      const tierCount = state.placements.length;
+      const shellWidth = Math.max(320, Math.min(window.innerWidth < 1180 ? window.innerWidth - 34 : 1500, 820 + tierCount * 156));
+      const sidePad = Math.max(26, Math.min(92, shellWidth * 0.06));
+      const coreWidth = Math.max(260, shellWidth - sidePad * 2);
+      const estimatedSlot = Math.max(52, (coreWidth * 0.79) / Math.max(1, tierCount));
+      const topPad = Math.max(90, estimatedSlot * 1.14 + 16);
+      const bottomPad = Math.max(34, estimatedSlot * 0.48);
+      triangleShell.style.setProperty('--triangle-max-width', `${Math.min(1760, 900 + tierCount * 165)}px`);
+      triangleShell.style.setProperty('--triangle-pad-x', `${sidePad}px`);
+      triangleShell.style.setProperty('--triangle-pad-top', `${topPad}px`);
+      triangleShell.style.setProperty('--triangle-pad-bottom', `${bottomPad}px`);
+      triangleShell.style.setProperty('--triangle-border-gap', `${Math.min(12, 6 + tierCount * 0.38)}px`);
+      state.placements.forEach((slots, tierIndex) => {
+        const row = document.createElement('div');
+        row.className = 'tier-row';
+        row.dataset.tier = tierIndex;
+        row.style.setProperty('--slots', slots.length);
+        const widthPercent = Math.min(84, 82 * ((tierIndex + 1) / Math.max(1, state.placements.length)));
+        row.style.setProperty('--row-width', widthPercent + '%');
+
+        slots.forEach((itemId, slotIndex) => {
+          const slot = document.createElement('div');
+          slot.className = `slot ${itemId ? 'filled' : 'empty'}`;
+          if (tierIndex === 0 && slotIndex === 0) slot.classList.add('special-top');
+          slot.dataset.tier = tierIndex;
+          slot.dataset.slot = slotIndex;
+
+          if (itemId) {
+            const item = getItem(itemId);
+            if (item) {
+              slot.draggable = true;
+              slot.dataset.itemId = itemId;
+              if (selectedId === itemId) slot.classList.add('selected');
+              slot.innerHTML = `
+                <img src="${item.src}" alt="" />
+                <button class="slot-x" type="button" aria-label="Return image to library">×</button>
+              `;
+              slot.addEventListener('dragstart', e => onDragStart(e, { type: 'slot', id: itemId, tier: tierIndex, slot: slotIndex }));
+              slot.addEventListener('click', e => {
+                if (e.target.closest('.slot-x')) return;
+                handleSlotSelection(itemId, tierIndex, slotIndex);
+              });
+              slot.querySelector('.slot-x').addEventListener('click', e => {
+                e.stopPropagation();
+                pushHistory();
+                state.placements[tierIndex][slotIndex] = null;
+                if (selectedId === itemId) selectedId = null;
+                render();
+                persistQuiet();
+              });
+            }
+          } else {
+            slot.addEventListener('click', () => {
+              if (selectedId) placeSelectedIntoSlot(tierIndex, slotIndex);
+            });
+          }
+
+          slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
+          slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
+          slot.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            slot.classList.remove('dragover');
+            dropIntoSlot(tierIndex, slotIndex);
+          });
+
+          row.appendChild(slot);
+        });
+
+        row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('dragover'); });
+        row.addEventListener('dragleave', e => {
+          const rt = e.relatedTarget;
+          if (!rt || !row.contains(rt)) row.classList.remove('dragover');
+        });
+        row.addEventListener('drop', e => {
+          if (e.target.closest('.slot')) return;
+          e.preventDefault();
+          row.classList.remove('dragover');
+          const firstEmpty = state.placements[tierIndex].findIndex(v => !v);
+          if (firstEmpty !== -1) dropIntoSlot(tierIndex, firstEmpty);
+        });
+
+        pyramid.appendChild(row);
+      });
+    }
+
+    function renderLibrary() {
+      const unranked = getUnrankedItems();
+      $('#libraryCount').textContent = unranked.length;
+      $('#mobileLibraryCount').textContent = unranked.length;
+
+      if (!unranked.length) {
+        const emptyDesktop = state.items.length
+          ? '<div class="library-empty">Everything is ranked. Open the pyramid and make changes any time.</div>'
+          : '<div class="library-empty">Your uploaded images will appear here.</div>';
+        libraryWrap.innerHTML = emptyDesktop;
+        mobileTray.innerHTML = '<div class="library-empty" style="padding:8px 4px 4px; min-width:100%; text-align:left;">No unranked items right now.</div>';
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'library-grid';
+      const trayFrag = document.createDocumentFragment();
+
+      unranked.forEach(item => {
+        const asset = document.createElement('div');
+        asset.className = 'asset' + (selectedId === item.id ? ' selected' : '');
+        asset.draggable = true;
+        asset.dataset.itemId = item.id;
+        asset.innerHTML = `
+          <img src="${item.src}" alt="" />
+          <div class="asset-tools">
+            <button class="asset-tool" type="button" aria-label="Delete image">×</button>
+          </div>
+        `;
+        asset.addEventListener('dragstart', e => onDragStart(e, { type: 'library', id: item.id }));
+        asset.addEventListener('click', e => {
+          if (e.target.closest('.asset-tool')) return;
+          toggleSelect(item.id);
+        });
+        asset.querySelector('.asset-tool').addEventListener('click', e => {
+          e.stopPropagation();
+          deleteItem(item.id);
+        });
+        grid.appendChild(asset);
+
+        const trayItem = asset.cloneNode(true);
+        trayItem.querySelectorAll('.asset-tool').forEach(btn => btn.remove());
+        trayItem.addEventListener('click', () => toggleSelect(item.id));
+        trayFrag.appendChild(trayItem);
+      });
+
+      libraryWrap.innerHTML = '';
+      libraryWrap.appendChild(grid);
+      mobileTray.innerHTML = '';
+      mobileTray.appendChild(trayFrag);
+    }
+
+    function updateStats() {
+      const ranked = getPlacedIds().size;
+      const total = state.items.length;
+      $('#rankedStat').textContent = ranked;
+      $('#unrankedStat').textContent = Math.max(0, total - ranked);
+      $('#totalStat').textContent = total;
+      $('#tierStat').textContent = state.placements.length;
+      $('#mobileLibraryToggle').textContent = selectedId ? 'Selected image ready to place' : 'Open image library';
+    }
+
+    function updateSelectedHint() {
+      if (!selectedId) {
+        selectedHint.innerHTML = 'No image selected. <strong>Mobile tip:</strong> tap an image, then tap a pyramid slot.';
+        return;
+      }
+      const item = getItem(selectedId);
+      if (!item) {
+        selectedId = null;
+        selectedHint.innerHTML = 'No image selected. <strong>Mobile tip:</strong> tap an image, then tap a pyramid slot.';
+        return;
+      }
+      const placement = findPlacement(selectedId);
+      selectedHint.innerHTML = placement
+        ? 'Selected image is on the board. Tap another slot to move or swap it, or press × to unrank it.'
+        : 'Selected image is ready. Tap any pyramid slot to place it.';
+    }
+
+    function onDragStart(e, payload) {
+      dragged = payload;
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', payload.id); } catch (_) {}
+    }
+
+    function toggleSelect(id) {
+      selectedId = selectedId === id ? null : id;
+      render();
+    }
+
+    function clearSelection() {
+      selectedId = null;
+      render();
+    }
+
+    function handleSlotSelection(itemId, tierIndex, slotIndex) {
+      if (selectedId && selectedId !== itemId) {
+        placeSelectedIntoSlot(tierIndex, slotIndex);
+        return;
+      }
+      selectedId = selectedId === itemId ? null : itemId;
+      render();
+    }
+
+    function placeSelectedIntoSlot(tierIndex, slotIndex) {
+      if (!selectedId) return;
+      dragged = { type: findPlacement(selectedId) ? 'slot' : 'library', id: selectedId };
+      dropIntoSlot(tierIndex, slotIndex);
+    }
+
+    function dropIntoSlot(tierIndex, slotIndex) {
+      const movingId = dragged?.id || selectedId;
+      if (!movingId) return;
+      const source = findPlacement(movingId);
+      const targetId = state.placements[tierIndex][slotIndex];
+      if (source && source.tier === tierIndex && source.slot === slotIndex) {
+        dragged = null;
+        return;
+      }
+      pushHistory();
+      if (source) state.placements[source.tier][source.slot] = targetId || null;
+      state.placements[tierIndex][slotIndex] = movingId;
+      dragged = null;
+      selectedId = null;
+      render();
+      persistQuiet();
+    }
+
+    function deleteItem(id) {
+      pushHistory();
+      removeFromPlacement(id);
+      state.items = state.items.filter(item => item.id !== id);
+      if (selectedId === id) selectedId = null;
+      render();
+      persistQuiet();
+    }
+
+    function fileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function addFiles(files) {
+      const imageFiles = [...files].filter(file => file.type.startsWith('image/'));
+      if (!imageFiles.length) return;
+      pushHistory();
+      let added = 0;
+      for (const file of imageFiles) {
+        if (file.size > 12 * 1024 * 1024) {
+          showToast(`${file.name} is over 12MB`);
+          continue;
+        }
+        try {
+          const src = await fileToDataURL(file);
+          state.items.push({ id: uid(), src });
+          added += 1;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      ensureCapacityForItems(state.items.length);
+      render();
+      persistQuiet();
+      if (added) showToast(`${added} image${added === 1 ? '' : 's'} added`);
+    }
+
+    function autoPlace() {
+      const remaining = getUnrankedItems();
+      if (!remaining.length) return showToast('Nothing left to place');
+      pushHistory();
+      ensureCapacityForItems(state.items.length);
+      let placed = 0;
+      for (let t = 0; t < state.placements.length && placed < remaining.length; t++) {
+        for (let s = 0; s < state.placements[t].length && placed < remaining.length; s++) {
+          if (!state.placements[t][s]) {
+            state.placements[t][s] = remaining[placed].id;
+            placed += 1;
+          }
+        }
+      }
+      selectedId = null;
+      render();
+      persistQuiet();
+      showToast(`${placed} item${placed === 1 ? '' : 's'} placed`);
+    }
+
+    function shuffle() {
+      if (!state.items.length) return;
+      pushHistory();
+      ensureCapacityForItems(state.items.length);
+      const ids = state.items.map(item => item.id);
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+      let k = 0;
+      state.placements = makePlacements(state.placements.length);
+      for (let t = 0; t < state.placements.length; t++) {
+        for (let s = 0; s < state.placements[t].length; s++) {
+          state.placements[t][s] = ids[k++] || null;
+        }
+      }
+      selectedId = null;
+      render();
+      persistQuiet();
+      showToast('Ranking shuffled');
+    }
+
+    function clearRanks() {
+      if (!getPlacedIds().size) return showToast('Nothing is ranked yet');
+      pushHistory();
+      state.placements = makePlacements(state.placements.length);
+      selectedId = null;
+      render();
+      persistQuiet();
+      showToast('All images returned to the library');
+    }
+
+    function saveLocal() {
+      persistQuiet();
+      showToast('Saved in this browser');
+    }
+
+    function resetAll() {
+      if (!confirm('Reset the whole board and remove all uploaded images?')) return;
+      pushHistory();
+      state.items = [];
+      state.placements = makePlacements(5);
+      selectedId = null;
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+      showToast('Board reset');
+    }
+
+    function undo() {
+      const prev = history.pop();
+      if (!prev) return showToast('Nothing to undo');
+      restore(prev);
+      persistQuiet();
+      showToast('Undone');
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.t);
+      showToast.t = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function openSheet() { mobileSheet.classList.add('open'); }
+    function closeSheet() { mobileSheet.classList.remove('open'); }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    function roundedRect(ctx, x, y, w, h, r) {
+      const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    function fitText(ctx, text, maxWidth, startSize, minSize = 12, weight = 800) {
+      let size = startSize;
+      do {
+        ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+        if (ctx.measureText(text).width <= maxWidth || size <= minSize) break;
+        size -= 1;
+      } while (size > minSize);
+      return size;
+    }
+
+    function drawImageCover(ctx, img, x, y, w, h, radius) {
+      const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+      const sw = w / scale;
+      const sh = h / scale;
+      const sx = (img.naturalWidth - sw) / 2;
+      const sy = (img.naturalHeight - sh) / 2;
+      ctx.save();
+      roundedRect(ctx, x, y, w, h, radius);
+      ctx.clip();
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+      ctx.restore();
+    }
+
+    function drawTrianglePath(ctx, cx, topY, width, height) {
+      ctx.beginPath();
+      ctx.moveTo(cx, topY);
+      ctx.lineTo(cx + width / 2, topY + height);
+      ctx.lineTo(cx - width / 2, topY + height);
+      ctx.closePath();
+    }
+
+    async function exportPNG() {
+      showToast('Preparing PNG…');
+
+      try {
+        const n = state.placements.length;
+        const W = Math.max(2500, 1200 + n * 270);
+        const outerPad = Math.max(132, Math.round(W * 0.05));
+        const borderThickness = Math.max(10, Math.round(W * 0.0044));
+        const rowGap = n >= 10 ? 8 : 14;
+        const slotGap = n >= 10 ? 8 : 12;
+        const usableWidth = W - outerPad * 2;
+        const targetBaseWidth = usableWidth * 0.80;
+        const slotSize = Math.max(86, Math.min(224, Math.floor((targetBaseWidth - (n - 1) * slotGap) / Math.max(1, n))));
+        const baseRowWidth = n * slotSize + Math.max(0, n - 1) * slotGap;
+        const sidePad = Math.max(slotSize * 0.94, W * 0.055);
+        const triangleWidth = Math.min(W - outerPad * 2, baseRowWidth + sidePad * 2);
+        const apexClearance = Math.max(slotSize * 1.34, 150);
+        const bottomPad = Math.max(slotSize * 0.46, 84);
+        const triangleHeight = apexClearance + n * slotSize + Math.max(0, n - 1) * rowGap + bottomPad;
+        const topPad = Math.max(126, Math.round(W * 0.048));
+        const H = topPad + triangleHeight + 120;
+        const SCALE = 2;
+        const centerX = W / 2;
+        const triangleTopY = topPad;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = W * SCALE;
+        canvas.height = H * SCALE;
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) throw new Error('Canvas unavailable');
+        ctx.scale(SCALE, SCALE);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        const bg = ctx.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, '#061425');
+        bg.addColorStop(.42, '#08213d');
+        bg.addColorStop(1, '#040a13');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        const glow = ctx.createRadialGradient(centerX, 20, 0, centerX, 60, 1100);
+        glow.addColorStop(0, 'rgba(56, 143, 255, 0.34)');
+        glow.addColorStop(.42, 'rgba(21, 101, 214, 0.14)');
+        glow.addColorStop(1, 'rgba(7, 42, 88, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, Math.min(H, 1200));
+
+        const sideGlow = ctx.createRadialGradient(W * .08, H * .42, 0, W * .08, H * .42, W * .45);
+        sideGlow.addColorStop(0, 'rgba(0, 183, 255, 0.10)');
+        sideGlow.addColorStop(1, 'rgba(0, 183, 255, 0)');
+        ctx.fillStyle = sideGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.024)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= W; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y <= H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        drawTrianglePath(ctx, centerX, triangleTopY, triangleWidth, triangleHeight);
+        const outerGrad = ctx.createLinearGradient(centerX, triangleTopY, centerX, triangleTopY + triangleHeight);
+        outerGrad.addColorStop(0, 'rgba(240,208,255,0.98)');
+        outerGrad.addColorStop(.4, 'rgba(139,92,246,0.95)');
+        outerGrad.addColorStop(1, 'rgba(109,40,217,0.98)');
+        ctx.fillStyle = outerGrad;
+        ctx.fill();
+
+        drawTrianglePath(ctx, centerX, triangleTopY + borderThickness, triangleWidth - borderThickness * 2, triangleHeight - borderThickness * 2);
+        const innerGrad = ctx.createLinearGradient(centerX, triangleTopY, centerX, triangleTopY + triangleHeight);
+        innerGrad.addColorStop(0, 'rgba(7,18,35,0.975)');
+        innerGrad.addColorStop(1, 'rgba(4,9,18,0.995)');
+        ctx.fillStyle = innerGrad;
+        ctx.fill();
+
+        const imageIds = state.placements.flat().filter(Boolean);
+        const imageMap = new Map();
+        await Promise.all(imageIds.map(async id => {
+          const item = getItem(id);
+          if (!item) return;
+          try { imageMap.set(id, await loadImage(item.src)); }
+          catch (e) { console.warn('Image skipped in export', e); }
+        }));
+
+
+        const startY = triangleTopY + apexClearance;
+        for (let tierIndex = 0; tierIndex < n; tierIndex++) {
+          const count = state.placements[tierIndex].length;
+          const rowWidth = count * slotSize + Math.max(0, count - 1) * slotGap;
+          const rowX = (W - rowWidth) / 2;
+          const y = startY + tierIndex * (slotSize + rowGap);
+
+          for (let slotIndex = 0; slotIndex < count; slotIndex++) {
+            const x = rowX + slotIndex * (slotSize + slotGap);
+            const itemId = state.placements[tierIndex][slotIndex];
+
+            if (tierIndex === 0 && slotIndex === 0) {
+              const cx = x + slotSize / 2;
+              const cy = y + slotSize / 2;
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.scale(1.02, 0.88);
+              const glow = ctx.createRadialGradient(0, 0, slotSize * 0.10, 0, 0, slotSize * 0.92);
+              glow.addColorStop(0, 'rgba(255, 225, 134, 0.34)');
+              glow.addColorStop(0.42, 'rgba(255, 193, 70, 0.18)');
+              glow.addColorStop(1, 'rgba(255, 164, 24, 0)');
+              ctx.fillStyle = glow;
+              ctx.beginPath();
+              ctx.arc(0, 0, slotSize * 0.92, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+
+            if (!itemId) {
+              roundedRect(ctx, x, y, slotSize, slotSize, 22);
+              ctx.fillStyle = 'rgba(255,255,255,.03)';
+              ctx.fill();
+              ctx.strokeStyle = 'rgba(255,255,255,.06)';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.fillStyle = 'rgba(255,255,255,.16)';
+              ctx.font = `400 ${Math.max(26, slotSize * .22)}px Inter, Arial, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('+', x + slotSize / 2, y + slotSize / 2 + 2);
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'alphabetic';
+              continue;
+            }
+
+            const img = imageMap.get(itemId);
+            if (img) drawImageCover(ctx, img, x, y, slotSize, slotSize, 20);
+            ctx.save();
+            roundedRect(ctx, x, y, slotSize, slotSize, 20);
+            ctx.clip();
+            const gloss = ctx.createLinearGradient(0, y, 0, y + slotSize);
+            gloss.addColorStop(0, 'rgba(255,255,255,0.08)');
+            gloss.addColorStop(.24, 'rgba(255,255,255,0)');
+            gloss.addColorStop(1, 'rgba(0,0,0,0.10)');
+            ctx.fillStyle = gloss;
+            ctx.fillRect(x, y, slotSize, slotSize);
+            ctx.restore();
+            if (tierIndex === 0 && slotIndex === 0) {
+              roundedRect(ctx, x, y, slotSize, slotSize, 20);
+              ctx.strokeStyle = 'rgba(255, 220, 130, .58)';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+          }
+        }
+
+        const png = await new Promise((resolve, reject) => {
+          try {
+            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG creation failed')), 'image/png', 1);
+          } catch (err) {
+            reject(err);
+          }
+        });
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(png);
+        a.download = 'image.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        showToast('PNG exported');
+      } catch (err) {
+        console.error(err);
+        showToast('Could not export PNG');
+      }
+    }
+
+    fileInput.addEventListener('change', e => {
+      addFiles(e.target.files);
+      fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    }));
+    ['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    }));
+    dropzone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+    libraryWrap.addEventListener('dragover', e => e.preventDefault());
+    libraryWrap.addEventListener('drop', e => {
+      e.preventDefault();
+      const movingId = dragged?.id || selectedId;
+      if (!movingId) return;
+      pushHistory();
+      removeFromPlacement(movingId);
+      selectedId = null;
+      dragged = null;
+      render();
+      persistQuiet();
+      showToast('Returned to library');
+    });
+
+    $('#addTierBtn').addEventListener('click', () => addTier(false));
+    $('#removeTierBtn').addEventListener('click', removeTier);
+    $('#autoPlaceBtn').addEventListener('click', autoPlace);
+    $('#shuffleBtn').addEventListener('click', shuffle);
+    $('#undoBtn').addEventListener('click', undo);
+    $('#boardUndoBtn').addEventListener('click', undo);
+    $('#unrankBtn').addEventListener('click', clearRanks);
+    $('#boardUnrankBtn').addEventListener('click', clearRanks);
+    $('#clearBtn').addEventListener('click', clearRanks);
+    $('#saveBtn').addEventListener('click', saveLocal);
+    $('#exportBtn').addEventListener('click', exportPNG);
+    $('#resetBtn').addEventListener('click', resetAll);
+    $('#clearSelectionBtn').addEventListener('click', clearSelection);
+    $('#sheetClearSelectionBtn').addEventListener('click', clearSelection);
+    $('#mobileLibraryBtn').addEventListener('click', openSheet);
+    $('#mobileLibraryToggle').addEventListener('click', openSheet);
+    $('#closeSheetBtn').addEventListener('click', closeSheet);
+    $('#sheetUploadBtn').addEventListener('click', () => fileInput.click());
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 860) closeSheet();
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => renderPyramid(), 90);
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (mobileSheet.classList.contains('open')) closeSheet();
+        else clearSelection();
+      }
+    });
+
+    let restored = false;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { restore(saved); restored = true; }
+    if (!restored) {
+      for (const key of LEGACY_KEYS) {
+        const legacy = localStorage.getItem(key);
+        if (legacy) { restore(legacy); restored = true; break; }
+      }
+    }
+    if (!restored) render();
+  </script>
+</body>
+</html>
